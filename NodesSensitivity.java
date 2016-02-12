@@ -15,6 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ 
+ // extension of the FiCaSchedulerNode class with added sensitivity tag
+ 
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity;
 
 import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNode;
