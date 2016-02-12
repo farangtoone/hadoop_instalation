@@ -130,8 +130,8 @@ public class CapacityScheduler extends
   private int f = 1;
   private int c = 2;
   private int contTeller = 0;
-  //JobSubmitter js = new JobSubmitter();
 
+  // variable sensitivity to be changed from 0, 1 or 2 where 0 is highly sensitivie and 2 is not sensitive
   private int sensitivity = 0;
   private int firstRnd = 1;
 
@@ -143,6 +143,7 @@ public class CapacityScheduler extends
       } else if (q1.getUsedCapacity() > q2.getUsedCapacity()) {
         return 1;
       }
+      // added log info to verify the execution flow
       LOG.info("Toon :: comparator");
       return q1.getQueuePath().compareTo(q2.getQueuePath());
     }
@@ -160,7 +161,7 @@ public class CapacityScheduler extends
   @Override
   public void setConf(Configuration conf) {
       yarnConf = conf;
-      //LOG.info("Toon :: clearance level from mapreduce " + conf.getInt("clearance", 0));
+      LOG.info("Toon :: clearance level from mapreduce " + conf.getInt("clearance", 0));
   }
   
   private void validateConf(Configuration conf) {
@@ -220,8 +221,11 @@ public class CapacityScheduler extends
   private boolean scheduleAsynchronously;
   private AsyncScheduleThread asyncSchedulerThread;
   private RMNodeLabelsManager labelManager;
-
+  
+  // added Map with the newly created NodesSensitivity (extended with a sensitivity tag from the excisting FiCaSchedulerNode)
   public Map<NodeId, NodesSensitivity> sNodes = new HashMap<NodeId, NodesSensitivity>();
+  
+  // 3 FiCaSchedulerNodes to keep track of each node in the VM cluster
   private FiCaSchedulerNode node1;
   private FiCaSchedulerNode node2;
   private FiCaSchedulerNode node3;
@@ -401,9 +405,6 @@ public class CapacityScheduler extends
     int fSens = 2;
     int current = 0;
     Collection<FiCaSchedulerNode> nodes = cs.getAllNodes().values();
-
-
-     
       int start = random.nextInt(nodes.size());
       LOG.info("Toon :: schedule node size " + nodes.size());
       for (FiCaSchedulerNode node : nodes) {
@@ -568,8 +569,8 @@ public class CapacityScheduler extends
       Map<String, CSQueue> queues, Map<String, CSQueue> newQueues) 
   throws IOException {
     LOG.info("Toon :: validate existing queues");
-    //LOG.info("Toon :: queues key " + queues.getKey());
-    //LOG.info("Toon :: queues value " + queues.getValue());
+    LOG.info("Toon :: queues key " + queues.getKey());
+    LOG.info("Toon :: queues value " + queues.getValue());
     // check that all static queues are included in the newQueues list
     for (Map.Entry<String, CSQueue> e : queues.entrySet()) {
       LOG.info("Toon :: for cs queue entry key " + e.getKey());
@@ -1006,41 +1007,13 @@ public class CapacityScheduler extends
     if (LOG.isDebugEnabled()) {
       LOG.debug("nodeUpdate: " + nm + " clusterResources: " + clusterResource);
     }
-    /*if(sensitivity == 1){
-      FiCaSchedulerNode node = getNode("Hadoop100");
-    }else if(sensitivity == 2){
-      FiCaSchedulerNode node = getNode("Hadoop101");
-    }else{
-      FiCaSchedulerNode node = getNode(nm.getNodeID());
-    }*/
-    // loop through sNodes and get the appropriate node
-
-    // node.getAvailableResource()
+   
     FiCaSchedulerNode node = getNode(nm.getNodeID());
-    /*LOG.info("Toon :: the sensitivity is " + node.getSensitivity());
-    if(node.getSensitivity() == 1){
-      // get a new node
-      LOG.info("Toon :: the sensitivity is set to " + node.getSensitivity());
-    }else{
-      LOG.info("Toon :: the sensitivity is set to nothing");
-    }*/
-    /*Set keys = nodes.keySet();
-    for (Iterator i = keys.iterator(); i.hasNext();) {
-      RMNode key = (RMNode) i.next();
-      FiCaSchedulerNode value = sNodes.get(key);
-      // get the sNodes node to check the sensitivity
-      LOG.info("Toon :: the node is " + value.toString()); // doesnt show at all!!
-    }*/
-    
-
-    //LOG.info("Toon :: i want to get Hadoop 100 " + nodes.get(nm.getNodeID()));
     
     List<UpdatedContainerInfo> containerInfoList = nm.pullContainerUpdates();
     List<ContainerStatus> newlyLaunchedContainers = new ArrayList<ContainerStatus>();
     List<ContainerStatus> completedContainers = new ArrayList<ContainerStatus>();
     
-    // Toon added the if nm.getHostName
-    //if(nm.getHostName() == "Hadoop101"){
       for(UpdatedContainerInfo containerInfo : containerInfoList) {
         newlyLaunchedContainers.addAll(containerInfo.getNewlyLaunchedContainers());
         completedContainers.addAll(containerInfo.getCompletedContainers());
@@ -1105,16 +1078,10 @@ public class CapacityScheduler extends
           node.getNodeID());
        
       LeafQueue queue = ((LeafQueue)reservedApplication.getQueue());
-      LOG.info("Toon :: queue reserved application " + queue);
-      //LOG.info("Toon :: queue assign containers " + queue.getApplication());
-      //LOG.info("Toon :: queue get value" + queue.getValue());
-      //LOG.info("Toon :: queue " + queue.getQueueInfo());
       LOG.info("Toon :: " + queue.getQueuePath());
 
       CSAssignment assignment = queue.assignContainers(clusterResource, node,
           false);
-
-      LOG.info("Toon :: CS assignment " + assignment);
       
       RMContainer excessReservation = assignment.getExcessReservation();
       if (excessReservation != null) {
@@ -1133,27 +1100,13 @@ public class CapacityScheduler extends
     
     // Try to schedule more if there are no reservations to fulfill
     if (node.getReservedContainer() == null) {
-      // if this is the wrong node sensitivity wise, can i get another one?
-      //LOG.info("Toon :: here reserved container is false ");
       if (calculator.computeAvailableContainers(node.getAvailableResource(),
         minimumAllocation) > 0) {
-        //LOG.info("Toon :: Trying to schedule on node: " + node.getNodeName() +
-        //      ", available: " + node.getAvailableResource() + " and the clusteresource is this " + clusterResource); // shows
         if (LOG.isDebugEnabled()) {
           LOG.debug("Trying to schedule on node: " + node.getNodeName() +
               ", available: " + node.getAvailableResource());
         }
-
-        // ********
-        // ******** clearance 0 assign containers
-        // ********
-        // ******** clearance 1 assign containers
-        // ********
-
         root.assignContainers(clusterResource, node, false);
-        LOG.info("Toon :: is this root the queue ?? " + root);
-
-        LOG.info("Toon :: assign the item from the queue to this node " + node.getNodeID());
       }
     } else {
       LOG.info("Skipping scheduling since node " + node.getNodeID() + 
@@ -1163,34 +1116,7 @@ public class CapacityScheduler extends
     }
   
   }
-
-  public synchronized void allocateContainersToNodeSafely(){
-    if(firstRnd == 1){
-      firstRnd = 0;
-      RMContainer reservedContainer1 = node1.getReservedContainer();
-      RMContainer reservedContainer2 = node2.getReservedContainer();
-      RMContainer reservedContainer3 = node3.getReservedContainer();
-      //if ((reservedContainer1 != null) || (reservedContainer2 != null) || (reservedContainer3 != null)){
-        if(sensitivity == 2){
-          LOG.info("Toon :: assign containers on cloud with sensitivity less or equal to 2! " + node1);           
-          root.assignContainers(clusterResource, node1, false);
-          LOG.info("Toon :: assign containers on cloud with sensitivity less or equal to 2! " + node2);           
-          root.assignContainers(clusterResource, node2, false);
-          LOG.info("Toon :: assign containers on cloud with sensitivity less or equal to 2! " + node3);           
-          root.assignContainers(clusterResource, node3, false);
-        }else if(sensitivity ==1){
-          LOG.info("Toon :: assign containers on cloud with sensitivity less or equal to 2! " + node1);           
-          root.assignContainers(clusterResource, node1, false);
-          LOG.info("Toon :: assign containers on cloud with sensitivity less or equal to 2! " + node2);           
-          root.assignContainers(clusterResource, node2, false);
-        }else{
-          LOG.info("Toon :: assign containers on cloud with sensitivity less or equal to 2! " + node1);           
-          root.assignContainers(clusterResource, node1, false);
-        }
-      //}
-    }
-  }
-
+  
   @Override
   public void handle(SchedulerEvent event) {
     LOG.info("Toon :: handle" + event.getType());
@@ -1222,107 +1148,19 @@ public class CapacityScheduler extends
       NodeUpdateSchedulerEvent nodeUpdatedEvent = (NodeUpdateSchedulerEvent)event;
       RMNode node = nodeUpdatedEvent.getRMNode();
       nodeUpdate(node);
-
-      // if node getSensitivity <= sens; process node, else nothing
-      /*for (Map.Entry<NodeId, NodesSensitivity> entry : sNodes.entrySet()) {
-        NodeId key = entry.getKey();
-          FiCaSchedulerNode value = (FiCaSchedulerNode) entry.getValue();
-          //LOG.info("Toon :: this is the value and also the node to check sensitivity off " + entry.getHostName());
-          String hnm = key.getHost().toString(); 
-          NodesSensitivity val = entry.getValue(); 
-          int snst = val.getSensitivity();
-          LOG.info("Toon :: node getHostName " + node.getHostName());
-          LOG.info("Toon :: node " + node);
-          //LOG.info("Toon :: value getHostName " + value.getHostName());
-          LOG.info("Toon :: value getHost " + value.getNodeName());
-          //LOG.info("Toon :: val getHostName " + val.getHostName());
-          //LOG.info("Toon :: val getHost " + val.getHost());
-
-          //LOG.info("Toon :: sensitivity node " + value.getSensitivity());
-          LOG.info("Toon :: sensitivity node  " + val.getSensitivity());
-      }
-
-      if (!scheduleAsynchronously) {            
-        Iterator it = sNodes.keySet().iterator();
-        while(it.hasNext()){
-          NodesSensitivity next = sNodes.get(it.next());
-          if(next.getSensitivity() <= sensitivity){
-            LOG.info("Toon :: Allocate this shit! " + next);
-            allocateContainersToNode(next);
-          }
-        }*/
-
+        // loop through the nodes with added sensitivity
+        // if the received cloud authority is within the data sensitivity then schedule on this node
         for (Map.Entry<NodeId, NodesSensitivity> entry : sNodes.entrySet()) {
           NodeId key = entry.getKey();
           NodesSensitivity value = entry.getValue();
-          //LOG.info("Toon :: key hostname: " + key.getHost());
-          //LOG.info("Toon :: n gethostname: " + node.getHostName());
           if(key.getHost().equals(node.getHostName())){
             if(value.getSensitivity() <= sensitivity){
-              LOG.info("Toon :: allocate this node " + value.getNodeName());
               allocateContainersToNode(value);
             }else{
-              LOG.info("Toon :: allocate to node 1 " + node1.getNodeName());
               allocateContainersToNode(node1);
             }
           }
         }
-
-        /*for (Map.Entry<NodeId, NodesSensitivity> entry : sNodes.entrySet()) {
-          NodeId key = entry.getKey();
-          NodesSensitivity value = entry.getValue();
-          if(key.getHost().equals(node.getHostName())){
-            if(value.getSensitivity()<= sensitivity && contTeller <= 2){
-              LOG.info("Toon :: conTeller <= 2; this is a node to schedule to : " + node3);
-              LOG.info("Toon :: this is the prev node " + value);
-              allocateContainersToNode(node3);
-            }else if(value.getSensitivity() <= sensitivity && contTeller <= 5){
-              LOG.info("Toon :: conTeller <= 5; this is a node to schedule to : " + node3);
-              LOG.info("Toon :: this is the prev node " + value);
-              allocateContainersToNode(node2);
-            }else{
-              LOG.info("Toon :: conTeller else; this is a node to schedule to : " + node3);
-              LOG.info("Toon :: this is the prev node " + value);
-              allocateContainersToNode(node1);
-            }
-          }
-          contTeller = contTeller + 1;
-        }*/
-
-        /*for (Map.Entry<NodeId, NodesSensitivity> entry : sNodes.entrySet()) {
-          NodeId key = entry.getKey();
-          FiCaSchedulerNode value = (FiCaSchedulerNode) entry.getValue();
-          //LOG.info("Toon :: this is the value and also the node to check sensitivity off " + entry.getHostName());
-          String hnm = key.getHost().toString(); 
-          NodesSensitivity val = entry.getValue(); 
-          int snst = val.getSensitivity();
-          LOG.info("Toon :: this is the retrieved sensitivity "+snst);
-          LOG.info("Toon :: Key " + key);
-          LOG.info("Toon :: EQUAL value get node name " + value.getNodeName()); 
-          LOG.info("Toon :: EQUAL node get host name " + hnm);
-          //if(value.getNodeName() == hnm){
-            //LOG.info("Toon :: this key and node are the same " + key + " : " + value);
-            if(snst == sensitivity){
-              LOG.info("Toon :: ALLOCATE THIS SHIT! snst 2 " + getNode(node.getNodeID()));           
-              allocateContainersToNode(getNode(node.getNodeID()));
-            }else if(snst == sensitivity){
-              LOG.info("Toon :: ALLOCATE THIS SHIT! snst 1" + getNode(node.getNodeID()));           
-              allocateContainersToNode(getNode(node.getNodeID()));
-            }else if(snst == sensitivity){
-              LOG.info("Toon :: ALLOCATE THIS SHIT! snst 0" + getNode(node.getNodeID()));           
-              allocateContainersToNode(getNode(node.getNodeID()));
-            }else{
-              LOG.info("Toon :: no allocations to be done");
-            }
-
-              //allocateContainersToNodeSafely();
-
-         // }
-          //allocateContainersToNode(getNode(node1.getNodeID()));
-          LOG.info("Toon :: Value " + value);
-          LOG.info("Toon :: Test this key: " + hnm);
-        }*/
-      //}
     }
     break;
     case APP_ADDED:
@@ -1386,36 +1224,25 @@ public class CapacityScheduler extends
   private synchronized void addNode(RMNode nodeManager) {
     LOG.info("Toon :: add node" + this.nodes + " add one node " + nodeManager.getHostName().toString());
 
-    //this.nodes results in:
-      //{hadoop100:47770=host: hadoop100:47770 #containers=0 available=8192 used=0, hadoop102:54608=host: hadoop102:54608 #containers=0 available=8192 used=0}
     if (labelManager != null) {
       labelManager.activateNode(nodeManager.getNodeID(),
           nodeManager.getTotalCapability());
     }
-
-    LOG.info("Toon :: node to be added where f is " + f + " and c is " + c + " the hadoop node should be 100 101 102 " + nodeManager.getNodeAddress());
-      
     this.nodes.put(nodeManager.getNodeID(), new FiCaSchedulerNode(nodeManager,
             usePortForNodeName));
+            
+    // custom Nodes which include the sensitivity
     sNodes.put(nodeManager.getNodeID(), new NodesSensitivity(nodeManager, usePortForNodeName, c));
 
+    // add only the resources of the trusted nodes in the cluster
     Resources.addTo(clusterResource, nodeManager.getTotalCapability());
     root.updateClusterResource(clusterResource);
-    LOG.info("Toon :: this is the clusterResource pool " + clusterResource);
     int numNodes = numNodeManagers.incrementAndGet();
-    LOG.info("Toon :: each node displayed " + this.nodes.get(nodeManager.getNodeID()));
     if (scheduleAsynchronously && numNodes == 1) {
       asyncSchedulerThread.beginSchedule();
     }
-    // create 3 nodes by Toon
-    /*if(c == 2){
-      node1 = new FiCaSchedulerNode(nodeManager, usePortForNodeName);
-    }else if(c == 1){
-      node2 = new FiCaSchedulerNode(nodeManager, usePortForNodeName);
-    }else{
-      node3 = new FiCaSchedulerNode(nodeManager, usePortForNodeName);
-    }*/
-    // comment: actually only node 1 matters
+
+    // fill in the 3 node names in the previously declared FiCaSchudernodes
     String temname = nodeManager.getHostName().substring(0,9);
     String c1 = "hadoop100";
     String c2 = "hadoop101";
