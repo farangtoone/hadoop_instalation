@@ -143,8 +143,8 @@ public class CapacityScheduler extends
       } else if (q1.getUsedCapacity() > q2.getUsedCapacity()) {
         return 1;
       }
-      // added log info to verify the execution flow
-      LOG.info("Toon :: comparator");
+      // added log info to verify the execution flow :: Toon
+      // LOG.info("comparator");
       return q1.getQueuePath().compareTo(q2.getQueuePath());
     }
   };
@@ -153,7 +153,6 @@ public class CapacityScheduler extends
     new Comparator<FiCaSchedulerApp>() {
     @Override
     public int compare(FiCaSchedulerApp a1, FiCaSchedulerApp a2) {
-      LOG.info("Toon :: compare to");
       return a1.getApplicationId().compareTo(a2.getApplicationId());
     }
   };
@@ -161,12 +160,13 @@ public class CapacityScheduler extends
   @Override
   public void setConf(Configuration conf) {
       yarnConf = conf;
-      LOG.info("Toon :: clearance level from mapreduce " + conf.getInt("clearance", 0));
+      // Change clearance level mapreduce
+      conf.getInt("clearance", 0);
   }
   
   private void validateConf(Configuration conf) {
     // validate scheduler memory allocation setting
-    LOG.info("Toon :: Validate conf");
+    // LOG.info("Validate configuration");
     int minMem = conf.getInt(
       YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB,
       YarnConfiguration.DEFAULT_RM_SCHEDULER_MINIMUM_ALLOCATION_MB);
@@ -304,7 +304,7 @@ public class CapacityScheduler extends
 
   private synchronized void initScheduler(Configuration configuration) throws
       IOException {
-        LOG.info("Toon :: init scheduler");
+        // LOG.info("Initiated scheduler");
     this.conf = loadCapacitySchedulerConfiguration(configuration);
     validateConf(this.conf);
     this.minimumAllocation = this.conf.getMinimumAllocation();
@@ -337,7 +337,7 @@ public class CapacityScheduler extends
   }
 
   private synchronized void startSchedulerThreads() {
-    LOG.info("Toon :: start scheduler threads");
+    // LOG.info("Start scheduler threads");
     if (scheduleAsynchronously) {
       Preconditions.checkNotNull(asyncSchedulerThread,
           "asyncSchedulerThread is null");
@@ -347,7 +347,7 @@ public class CapacityScheduler extends
 
   @Override
   public void serviceInit(Configuration conf) throws Exception {
-    LOG.info("Toon :: service init");
+    // LOG.info("Service initiation");
     Configuration configuration = new Configuration(conf);
     initScheduler(configuration);
     super.serviceInit(conf);
@@ -355,14 +355,14 @@ public class CapacityScheduler extends
 
   @Override
   public void serviceStart() throws Exception {
-        LOG.info("Toon :: service start");
+    // LOG.info("Service start");
     startSchedulerThreads();
     super.serviceStart();
   }
 
   @Override
   public void serviceStop() throws Exception {
-    LOG.info("Toon :: service stop");
+    // LOG.info("Service stop");
     synchronized (this) {
       if (scheduleAsynchronously && asyncSchedulerThread != null) {
         asyncSchedulerThread.interrupt();
@@ -375,7 +375,7 @@ public class CapacityScheduler extends
   @Override
   public synchronized void
   reinitialize(Configuration conf, RMContext rmContext) throws IOException {
-    LOG.info("Toon :: reinitialize");
+    // LOG.info("Reinitialize");
     Configuration configuration = new Configuration(conf);
     CapacitySchedulerConfiguration oldConf = this.conf;
     this.conf = loadCapacitySchedulerConfiguration(configuration);
@@ -406,18 +406,18 @@ public class CapacityScheduler extends
     int current = 0;
     Collection<FiCaSchedulerNode> nodes = cs.getAllNodes().values();
       int start = random.nextInt(nodes.size());
-      LOG.info("Toon :: schedule node size " + nodes.size());
+      // LOG.info("Schedule node size " + nodes.size());
       for (FiCaSchedulerNode node : nodes) {
-        LOG.info("Toon :: each node " + node);
+        // LOG.info("Loop through each node " + node);
         if (current++ >= start) {
-          LOG.info("Toon :: These is the node being added " + node);
+          // LOG.info("Node added " + node);
           cs.allocateContainersToNode(node);
         }
       }
       // Now, just get everyone to be safe
       for (FiCaSchedulerNode node : nodes) {
         cs.allocateContainersToNode(node);
-        LOG.info("Toon :: this is the FicaSchedulerNode " + node);
+        // LOG.info("FicaSchedulerNode " + node);
       }
       try {
         Thread.sleep(cs.getAsyncScheduleInterval());
