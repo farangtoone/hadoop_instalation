@@ -143,7 +143,7 @@ public class CapacityScheduler extends
       } else if (q1.getUsedCapacity() > q2.getUsedCapacity()) {
         return 1;
       }
-      // added log info to verify the execution flow :: Toon
+      // Added log info to verify the execution flow
       // LOG.info("comparator");
       return q1.getQueuePath().compareTo(q2.getQueuePath());
     }
@@ -390,7 +390,6 @@ public class CapacityScheduler extends
   }
   
   long getAsyncScheduleInterval() {
-    LOG.info("Toon :: this is the async schedule interval");
     return asyncScheduleInterval;
   }
 
@@ -430,14 +429,12 @@ public class CapacityScheduler extends
     private AtomicBoolean runSchedules = new AtomicBoolean(false);
 
     public AsyncScheduleThread(CapacityScheduler cs) {
-      LOG.info("Toon :: async schedule thread");
       this.cs = cs;
       setDaemon(true);
     }
 
     @Override
     public void run() {
-      LOG.info("Toon :: run");
       while (true) {
         if (!runSchedules.get()) {
           try {
@@ -450,12 +447,10 @@ public class CapacityScheduler extends
     }
 
     public void beginSchedule() {
-      LOG.info("Toon :: begin schedule");
       runSchedules.set(true);
     }
 
     public void suspendSchedule() {
-      LOG.info("Toon :: suspend schedule");
       runSchedules.set(false);
     }
 
@@ -473,7 +468,6 @@ public class CapacityScheduler extends
   private static final QueueHook noop = new QueueHook();
 
   private void initializeQueueMappings() throws IOException {
-    //LOG.info("Toon :: initialize queue mappings"); // shows
     overrideWithQueueMappings = conf.getOverrideWithQueueMappings();
     LOG.info("Initialized queue mappings, override: "
         + overrideWithQueueMappings);
@@ -481,8 +475,6 @@ public class CapacityScheduler extends
     List<QueueMapping> newMappings = conf.getQueueMappings();
     //check if mappings refer to valid queues
     for (QueueMapping mapping : newMappings) {
-      //LOG.info("Toon :: mapping " + mapping.queue.getQueueInfo());
-      LOG.info("Toon :: mapping to string ");
       if (!mapping.queue.equals(CURRENT_USER_MAPPING) &&
           !mapping.queue.equals(PRIMARY_GROUP_MAPPING)) {
         CSQueue queue = queues.get(mapping.queue);
@@ -494,8 +486,7 @@ public class CapacityScheduler extends
     }
     //apply the new mappings since they are valid
     mappings = newMappings;
-    LOG.info("Toon :: mappings " + mappings); // shows []
-    LOG.info("Toon :: mapping size " + mappings.size()); // shows size 0
+
     // initialize groups if mappings are present
     if (mappings.size() > 0) {
       groups = new Groups(conf);
@@ -505,7 +496,6 @@ public class CapacityScheduler extends
   @Lock(CapacityScheduler.class)
   private void initializeQueues(CapacitySchedulerConfiguration conf)
     throws IOException {
-      LOG.info("Toon :: initialize queues");
     root = 
         parseQueue(this, conf, null, CapacitySchedulerConfiguration.ROOT, 
             queues, queues, noop);
@@ -515,15 +505,12 @@ public class CapacityScheduler extends
     // **********
 
     labelManager.reinitializeQueueLabels(getQueueToLabels());
-    LOG.info("Initialized root queue " + root); // shows
-    LOG.info("FARANGTOONE " + queues); // shows root queue
     initializeQueueMappings();
   }
 
   @Lock(CapacityScheduler.class)
   private void reinitializeQueues(CapacitySchedulerConfiguration conf) 
   throws IOException {
-    LOG.info("Toon :: reinitialize queues");
     // Parse new queues
     Map<String, CSQueue> newQueues = new HashMap<String, CSQueue>();
     CSQueue newRoot = 
@@ -547,13 +534,8 @@ public class CapacityScheduler extends
   }
   
   private Map<String, Set<String>> getQueueToLabels() {
-    LOG.info("Toon :: get queue to labels");
     Map<String, Set<String>> queueToLabels = new HashMap<String, Set<String>>();
     for (CSQueue queue : queues.values()) {
-      // to test
-      LOG.info("Toon :: cs queue value in for loop " + queue.getQueueName()); // shows root
-      LOG.info("Toon :: cs queue get accessible node labels " + queue.getAccessibleNodeLabels()); // shows [*]
-      //LOG.info("Toon :: get this value from mapreduce " + JobSubmissionFiles.JOB_FILE_PERMISSION);
       queueToLabels.put(queue.getQueueName(), queue.getAccessibleNodeLabels());
     }
     return queueToLabels;
@@ -568,13 +550,8 @@ public class CapacityScheduler extends
   private void validateExistingQueues(
       Map<String, CSQueue> queues, Map<String, CSQueue> newQueues) 
   throws IOException {
-    LOG.info("Toon :: validate existing queues");
-    LOG.info("Toon :: queues key " + queues.getKey());
-    LOG.info("Toon :: queues value " + queues.getValue());
     // check that all static queues are included in the newQueues list
     for (Map.Entry<String, CSQueue> e : queues.entrySet()) {
-      LOG.info("Toon :: for cs queue entry key " + e.getKey());
-      LOG.info("Toon :: for cs queue entry value " + e.getValue());
       if (!(e.getValue() instanceof ReservationQueue)) {
         if (!newQueues.containsKey(e.getKey())) {
           throw new IOException(e.getKey() + " cannot be found during refresh!");
@@ -593,7 +570,6 @@ public class CapacityScheduler extends
   private void addNewQueues(
       Map<String, CSQueue> queues, Map<String, CSQueue> newQueues) 
   {
-    LOG.info("Toon :: add new queues");
     for (Map.Entry<String, CSQueue> e : newQueues.entrySet()) {
       String queueName = e.getKey();
       CSQueue queue = e.getValue();
@@ -618,7 +594,6 @@ public class CapacityScheduler extends
       conf.getQueues(fullQueueName);
     boolean isReservableQueue = conf.isReservable(fullQueueName);
     if (childQueueNames == null || childQueueNames.length == 0) {
-      LOG.info("Toon :: parse queue");
       if (null == parent) {
         throw new IllegalStateException(
             "Queue configuration missing child queue names for " + queueName);
@@ -626,7 +601,6 @@ public class CapacityScheduler extends
       // Check if the queue will be dynamically managed by the Reservation
       // system
       if (isReservableQueue) {
-        LOG.info("Toon :: if is reservable queue"); // no show
         queue =
             new PlanQueue(csContext, queueName, parent,
                 oldQueues.get(queueName));
@@ -639,7 +613,6 @@ public class CapacityScheduler extends
         queue = hook.hook(queue);
       }
     } else {
-      LOG.info("Toon :: else if is reservable queue");
       if (isReservableQueue) {
         throw new IllegalStateException(
             "Only Leaf Queues can be reservable for " + queueName);
@@ -686,7 +659,6 @@ public class CapacityScheduler extends
   private static final String PRIMARY_GROUP_MAPPING = "%primary_group";
 
   private String getMappedQueue(String user) throws IOException {
-    LOG.info("Toon :: get mapped queue");
     for (QueueMapping mapping : mappings) {
       if (mapping.type == MappingType.USER) {
         if (mapping.source.equals(CURRENT_USER_MAPPING)) {
@@ -717,8 +689,6 @@ public class CapacityScheduler extends
 
   private synchronized void addApplication(ApplicationId applicationId,
     String queueName, String user, boolean isAppRecovering) {
-    LOG.info("Toon :: add application by " + user);
-    LOG.info("Toon :: add application queue name " + queueName);
     if (mappings != null && mappings.size() > 0) {
       try {
         String mappedQueue = getMappedQueue(user);
@@ -730,7 +700,6 @@ public class CapacityScheduler extends
                 + " mapping [" + queueName + "] to [" + mappedQueue
                 + "] override " + overrideWithQueueMappings);
             queueName = mappedQueue;
-            // Toon queue submission is here?
             RMApp rmApp = rmContext.getRMApps().get(applicationId);
             rmApp.setQueue(queueName);
           }
@@ -802,7 +771,6 @@ public class CapacityScheduler extends
       ApplicationAttemptId applicationAttemptId,
       boolean transferStateFromPreviousAttempt,
       boolean isAttemptRecovering) {
-    LOG.info("Toon :: add application attempt");
     SchedulerApplication<FiCaSchedulerApp> application =
         applications.get(applicationAttemptId.getApplicationId());
     CSQueue queue = (CSQueue) application.getQueue();
@@ -834,7 +802,6 @@ public class CapacityScheduler extends
 
   private synchronized void doneApplication(ApplicationId applicationId,
       RMAppState finalState) {
-    LOG.info("Toon :: done application");
     SchedulerApplication<FiCaSchedulerApp> application =
         applications.get(applicationId);
     if (application == null){
@@ -859,7 +826,6 @@ public class CapacityScheduler extends
       RMAppAttemptState rmAppAttemptFinalState, boolean keepContainers) {
     LOG.info("Application Attempt " + applicationAttemptId + " is done." +
         " finalState=" + rmAppAttemptFinalState);
-    LOG.info("Toon :: done application attempt");
     FiCaSchedulerApp attempt = getApplicationAttempt(applicationAttemptId);
     SchedulerApplication<FiCaSchedulerApp> application =
         applications.get(applicationAttemptId.getApplicationId());
@@ -913,7 +879,6 @@ public class CapacityScheduler extends
   public Allocation allocate(ApplicationAttemptId applicationAttemptId,
       List<ResourceRequest> ask, List<ContainerId> release, 
       List<String> blacklistAdditions, List<String> blacklistRemovals) {
-    LOG.info("Toon :: allocate");
 
     FiCaSchedulerApp application = getApplicationAttempt(applicationAttemptId);
     if (application == null) {
@@ -975,7 +940,6 @@ public class CapacityScheduler extends
       boolean includeChildQueues, boolean recursive) 
   throws IOException {
     CSQueue queue = null;
-    LOG.info("Toon :: get queue info");
     synchronized (this) {
       queue = this.queues.get(queueName); 
     }
@@ -989,7 +953,6 @@ public class CapacityScheduler extends
   @Override
   @Lock(Lock.NoLock.class)
   public List<QueueUserACLInfo> getQueueUserAclInfo() {
-    LOG.info("Toon :: get queue user acl info");
     UserGroupInformation user = null;
     try {
       user = UserGroupInformation.getCurrentUser();
@@ -1002,7 +965,6 @@ public class CapacityScheduler extends
   }
 
   private synchronized void nodeUpdate(RMNode nm) {
-    LOG.info("Toon :: node update " + nm.getHostName());
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("nodeUpdate: " + nm + " clusterResources: " + clusterResource);
@@ -1017,19 +979,19 @@ public class CapacityScheduler extends
       for(UpdatedContainerInfo containerInfo : containerInfoList) {
         newlyLaunchedContainers.addAll(containerInfo.getNewlyLaunchedContainers());
         completedContainers.addAll(containerInfo.getCompletedContainers());
-        LOG.info("Toon :: updated container info " + node); // shows
+        // LOG.info("Updated container info " + node);
       }
       
       // Processing the newly launched containers
       for (ContainerStatus launchedContainer : newlyLaunchedContainers) {
         containerLaunchedOnNode(launchedContainer.getContainerId(), node);
-        LOG.info("Toon :: container status " + node); // shows
+        // LOG.info("Container status " + node);
       }
 
       // Process completed containers
       for (ContainerStatus completedContainer : completedContainers) {
         ContainerId containerId = completedContainer.getContainerId();
-        LOG.info("Toon :: completed container info " + node + " these are containers " + containerId); // shows up
+        // LOG.info("Cmpleted container info " + node + " these are containers " + containerId);
         LOG.debug("Container FINISHED: " + containerId);
         completedContainer(getRMContainer(containerId), 
             completedContainer, RMContainerEventType.FINISHED);
@@ -1048,7 +1010,6 @@ public class CapacityScheduler extends
    */
   private synchronized void updateNodeAndQueueResource(RMNode nm, 
       ResourceOption resourceOption) {
-    LOG.info("Toon :: update node and queue resource");
     updateNodeResource(nm, resourceOption);
     root.updateClusterResource(clusterResource);
   }
@@ -1060,14 +1021,13 @@ public class CapacityScheduler extends
       return;
     }
 
-    LOG.info("Toon :: allocate Containers To Node " + node.getNodeID());
+    // LOG.info("Allocate Containers To Node " + node.getNodeID());
 
     // Assign new containers...
     // 1. Check for reserved applications
     // 2. Schedule if there are no reservations
 
     RMContainer reservedContainer = node.getReservedContainer();
-    // LOG.info("Toon :: is the container reserved? " + reservedContainer); // returns null
     if (reservedContainer != null) {
       FiCaSchedulerApp reservedApplication =
           getCurrentAttemptForContainer(reservedContainer.getContainerId());
@@ -1078,7 +1038,7 @@ public class CapacityScheduler extends
           node.getNodeID());
        
       LeafQueue queue = ((LeafQueue)reservedApplication.getQueue());
-      LOG.info("Toon :: " + queue.getQueuePath());
+      // LOG.info(queue.getQueuePath());
 
       CSAssignment assignment = queue.assignContainers(clusterResource, node,
           false);
@@ -1086,7 +1046,7 @@ public class CapacityScheduler extends
       RMContainer excessReservation = assignment.getExcessReservation();
       if (excessReservation != null) {
       Container container = excessReservation.getContainer();
-      LOG.info("Toon :: excess reservation get container " + container);
+      // LOG.info("Excess reservation get container " + container);
       queue.completedContainer(
           clusterResource, assignment.getApplication(), node, 
           excessReservation, 
@@ -1119,7 +1079,7 @@ public class CapacityScheduler extends
   
   @Override
   public void handle(SchedulerEvent event) {
-    LOG.info("Toon :: handle" + event.getType());
+    // LOG.info("Handle" + event.getType());
     switch(event.getType()) {
     case NODE_ADDED:
     {
@@ -1222,7 +1182,7 @@ public class CapacityScheduler extends
   }
 
   private synchronized void addNode(RMNode nodeManager) {
-    LOG.info("Toon :: add node" + this.nodes + " add one node " + nodeManager.getHostName().toString());
+    // LOG.info("Add nodes" + this.nodes + " add one node " + nodeManager.getHostName().toString());
 
     if (labelManager != null) {
       labelManager.activateNode(nodeManager.getNodeID(),
@@ -1242,20 +1202,20 @@ public class CapacityScheduler extends
       asyncSchedulerThread.beginSchedule();
     }
 
-    // fill in the 3 node names in the previously declared FiCaSchudernodes
+    // Fill in the 3 fixed node names in the previously declared FiCaSchedudernodes
     String temname = nodeManager.getHostName().substring(0,9);
     String c1 = "hadoop100";
     String c2 = "hadoop101";
     String c3 = "hadoop102";
-    LOG.info("Toon :: CHECKED assigning node if else " + temname);
+    // LOG.info("Checked assigning node if else " + temname);
     if(temname == c3){
-      LOG.info("Toon :: CHECKED " + temname);
+      // LOG.info("Checked " + temname);
       node3 = new FiCaSchedulerNode(nodeManager, usePortForNodeName);
     }else if(temname == c2){
-      LOG.info("Toon :: CHECKED " + temname);
+      // LOG.info("Checked " + temname);
       node2 = new FiCaSchedulerNode(nodeManager, usePortForNodeName);
     }else{
-      LOG.info("Toon :: CHECKED " + temname);
+      // LOG.info("Checked " + temname);
       node1 = new FiCaSchedulerNode(nodeManager, usePortForNodeName);
     }
     c-=1;
@@ -1265,7 +1225,7 @@ public class CapacityScheduler extends
   }
 
   private synchronized void removeNode(RMNode nodeInfo) {
-    LOG.info("Toon :: remove node");
+    // LOG.info("Remove node");
     // update this node to node label manager
     if (labelManager != null) {
       labelManager.deactivateNode(nodeInfo.getNodeID());
@@ -1314,7 +1274,6 @@ public class CapacityScheduler extends
   @Override
   protected synchronized void completedContainer(RMContainer rmContainer,
       ContainerStatus containerStatus, RMContainerEventType event) {
-    LOG.info("Toon :: completed container");
     if (rmContainer == null) {
       LOG.info("Null container completed...");
       return;
@@ -1384,7 +1343,6 @@ public class CapacityScheduler extends
 
   @Override
   public void preemptContainer(ApplicationAttemptId aid, RMContainer cont) {
-    LOG.info("Toon :: preempt container");
     if(LOG.isDebugEnabled()){
       LOG.debug("PREEMPT_CONTAINER: application:" + aid.toString() +
           " container: " + cont.toString());
@@ -1393,13 +1351,11 @@ public class CapacityScheduler extends
     if (app != null) {
       app.addPreemptContainer(cont.getContainerId());
       Container container = cont.getContainer();
-      LOG.info("Toon :: this container belongs to " + container.getNodeId());
     }
   }
 
   @Override
   public void killContainer(RMContainer cont) {
-    LOG.info("Toon :: kill container");
     if (LOG.isDebugEnabled()) {
       LOG.debug("KILL_CONTAINER: container" + cont.toString());
     }
@@ -1412,7 +1368,6 @@ public class CapacityScheduler extends
   @Override
   public synchronized boolean checkAccess(UserGroupInformation callerUGI,
       QueueACL acl, String queueName) {
-    LOG.info("Toon :: check access");
     CSQueue queue = getQueue(queueName);
     if (queue == null) {
       if (LOG.isDebugEnabled()) {
@@ -1426,7 +1381,6 @@ public class CapacityScheduler extends
 
   @Override
   public List<ApplicationAttemptId> getAppsInQueue(String queueName) {
-    LOG.info("Toon :: get apps in queue");
     CSQueue queue = queues.get(queueName);
     if (queue == null) {
       return null;
@@ -1438,7 +1392,6 @@ public class CapacityScheduler extends
 
   private CapacitySchedulerConfiguration loadCapacitySchedulerConfiguration(
       Configuration configuration) throws IOException {
-    LOG.info("Toon :: load capacity scheduler configuration");
     try {
       InputStream CSInputStream =
           this.rmContext.getConfigurationProvider()
@@ -1456,7 +1409,6 @@ public class CapacityScheduler extends
 
   private synchronized String resolveReservationQueueName(String queueName,
       ApplicationId applicationId, ReservationId reservationID) {
-    LOG.info("Toon :: resolve reservation queuename");
     CSQueue queue = getQueue(queueName);
     // Check if the queue is a plan queue
     if ((queue == null) || !(queue instanceof PlanQueue)) {
@@ -1496,7 +1448,6 @@ public class CapacityScheduler extends
   @Override
   public synchronized void removeQueue(String queueName)
       throws SchedulerDynamicEditException {
-        LOG.info("Toon :: remove queue");
     LOG.info("Removing queue: " + queueName);
     CSQueue q = this.getQueue(queueName);
     if (!(q instanceof ReservationQueue)) {
@@ -1520,7 +1471,6 @@ public class CapacityScheduler extends
   @Override
   public synchronized void addQueue(Queue queue)
       throws SchedulerDynamicEditException {
-        LOG.info("Toon :: add queue");
 
     if (!(queue instanceof ReservationQueue)) {
       throw new SchedulerDynamicEditException("Queue " + queue.getQueueName()
@@ -1547,7 +1497,6 @@ public class CapacityScheduler extends
   public synchronized void setEntitlement(String inQueue,
       QueueEntitlement entitlement) throws SchedulerDynamicEditException,
       YarnException {
-        LOG.info("Toon :: set entitlement");
     LeafQueue queue = getAndCheckLeafQueue(inQueue);
     ParentQueue parent = (ParentQueue) queue.getParent();
 
@@ -1587,7 +1536,6 @@ public class CapacityScheduler extends
   @Override
   public synchronized String moveApplication(ApplicationId appId,
       String targetQueueName) throws YarnException {
-    LOG.info("Toon :: move application");
     FiCaSchedulerApp app =
         getApplicationAttempt(ApplicationAttemptId.newInstance(appId, 0));
     String sourceQueueName = app.getQueue().getQueueName();
@@ -1629,7 +1577,6 @@ public class CapacityScheduler extends
    * @throws YarnException
    */
   private LeafQueue getAndCheckLeafQueue(String queue) throws YarnException {
-    LOG.info("Toon :: get and check leafqueue");
     CSQueue ret = this.getQueue(queue);
     if (ret == null) {
       throw new YarnException("The specified Queue: " + queue
@@ -1645,7 +1592,6 @@ public class CapacityScheduler extends
   /** {@inheritDoc} */
   @Override
   public EnumSet<SchedulerResourceTypes> getSchedulingResourceTypes() {
-    LOG.info("Toon :: get scheduling resource types");
     if (calculator.getClass().getName()
       .equals(DefaultResourceCalculator.class.getName())) {
       return EnumSet.of(SchedulerResourceTypes.MEMORY);
@@ -1655,7 +1601,6 @@ public class CapacityScheduler extends
   }
   
   private String handleMoveToPlanQueue(String targetQueueName) {
-    LOG.info("Toon :: handle move to planqueue");
     CSQueue dest = getQueue(targetQueueName);
     if (dest != null && dest instanceof PlanQueue) {
       // use the default child reservation queue of the plan
@@ -1666,7 +1611,6 @@ public class CapacityScheduler extends
 
   @Override
   public Set<String> getPlanQueues() {
-    LOG.info("Toon :: get plan queues");
     Set<String> ret = new HashSet<String>();
     for (Map.Entry<String, CSQueue> l : queues.entrySet()) {
       if (l.getValue() instanceof PlanQueue) {
